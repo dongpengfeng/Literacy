@@ -85,6 +85,11 @@ function setBank(data) {
   updateRange();
 }
 
+function setRangePreviewExpanded(expanded) {
+  $("range-preview-toggle").setAttribute("aria-expanded", String(expanded));
+  $("range-preview-action").textContent = expanded ? "收起" : "展开";
+}
+
 function selectRange(entries, from, to) {
   const start = Number(from), end = Number(to);
   if (!String(from).trim() || !String(to).trim() || !Number.isInteger(start) || !Number.isInteger(end)) {
@@ -106,7 +111,9 @@ function updateRange() {
     selectedRange = { start: range.start, end: range.end };
     $("range-status").textContent = `已选第 ${range.start}～${range.end} 个 · ${range.end - range.start + 1} 条字卡 · ${characters.length} 个不同汉字 · 每轮 ${Math.min(10, characters.length)} 题${inProgress ? "（下一轮生效）" : ""}`;
     $("range-status").className = "hint";
-    $("range-preview").textContent = `范围预览：${characters.slice(0, 20).join("　")}${characters.length > 20 ? " …" : ""}`;
+    $("range-preview-toggle").hidden = false;
+    setRangePreviewExpanded(false);
+    $("range-preview").textContent = `范围预览：${characters.join("　")}`;
     $("round-size").textContent = `✦ 每轮 ${Math.min(10, characters.length)} 题`;
     $("start").disabled = false;
     $("again").disabled = false;
@@ -117,6 +124,8 @@ function updateRange() {
     $("range-status").textContent = error.message;
     $("range-status").className = "hint range-error";
     $("range-preview").textContent = "";
+    $("range-preview-toggle").hidden = true;
+    setRangePreviewExpanded(false);
     $("round-size").textContent = "✦ 请先选择有效范围";
     $("start").disabled = true;
     $("again").disabled = true;
@@ -160,12 +169,49 @@ function retryMistakes(scope) {
   startRound("review", shuffle(targets).slice(0, 10), pool, scope === "round" ? roundId : null);
 }
 
+let audioRequest = 0;
+let speechTimer;
+const pronunciation = $("pronunciation");
+
 function stopSpeech() {
+  audioRequest++;
+  clearTimeout(speechTimer);
+  pronunciation.pause();
   activeSpeech = null;
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
 function speak() {
+  stopSpeech();
+  const clip = window.LITERACY_AUDIO?.[questions[questionIndex].targetChar];
+  if (!clip) {
+    $("speech-status").textContent = "读音文件未加载，请刷新页面或点击“备用系统朗读”。";
+    return;
+  }
+  const request = audioRequest;
+  pronunciation.src = `data:audio/mpeg;base64,${clip}`;
+  $("speech-status").textContent = "正在加载读音…";
+  // Call play directly in the click stack; do not wait for canplay or a fetch.
+  const result = pronunciation.play();
+  if (result) result.catch((error) => {
+    if (request !== audioRequest) return;
+    $("speech-status").textContent = error.name === "NotAllowedError"
+      ? "播放被浏览器暂停，请再点一次“听一听”。"
+      : "音频未能播放，请点“听一听”重试，或使用备用系统朗读。";
+  });
+}
+
+pronunciation.addEventListener("playing", () => {
+  $("speech-status").textContent = "正在读题…";
+});
+pronunciation.addEventListener("ended", () => {
+  $("speech-status").textContent = "没听清？再点一次“听一听”。";
+});
+pronunciation.addEventListener("error", () => {
+  $("speech-status").textContent = "音频加载失败，请刷新页面，或点击“备用系统朗读”。";
+});
+
+function speakWithSystem() {
   stopSpeech();
   if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
     $("speech-status").textContent = "当前浏览器不支持朗读，请展开“家长辅助读题”，由家长读出汉字。";
@@ -180,11 +226,16 @@ function speak() {
   if (voice) utterance.voice = voice;
   $("speech-status").textContent = "正在读题…";
   utterance.onend = () => {
-    if (activeSpeech === utterance) $("speech-status").textContent = "没听清？再点一次“听一听”。没声音时可请家长辅助读题。";
+    if (activeSpeech === utterance) { clearTimeout(speechTimer); $("speech-status").textContent = "朗读结束，可点“听一听”播放录制读音。"; }
   };
   utterance.onerror = () => {
-    if (activeSpeech === utterance) $("speech-status").textContent = "朗读未成功，请再试一次，或请家长展开下方辅助读题。";
+    if (activeSpeech === utterance) { clearTimeout(speechTimer); $("speech-status").textContent = "朗读未成功，请再试一次，或请家长展开下方辅助读题。"; }
   };
+  utterance.onstart = () => { if (activeSpeech === utterance) clearTimeout(speechTimer); };
+  speechTimer = setTimeout(() => {
+    if (activeSpeech === utterance) $("speech-status").textContent = "系统朗读未响应，请点击“听一听”播放读音。";
+  }, 4000);
+  window.speechSynthesis.resume();
   window.speechSynthesis.speak(utterance);
 }
 
@@ -382,6 +433,9 @@ function exportRecords() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+$("range-preview-toggle").addEventListener("click", () => {
+  setRangePreviewExpanded($("range-preview-toggle").getAttribute("aria-expanded") !== "true");
+});
 $("start").addEventListener("click", () => startRound());
 for (const id of ["range-start", "range-end"]) $(id).addEventListener("input", updateRange);
 $("range-all").addEventListener("click", () => {
@@ -393,6 +447,7 @@ $("again").addEventListener("click", () => startRound());
 $("retry-round").addEventListener("click", () => retryMistakes("round"));
 $("retry-history").addEventListener("click", () => retryMistakes("history"));
 $("listen").addEventListener("click", speak);
+$("system-speech").addEventListener("click", speakWithSystem);
 $("next").addEventListener("click", nextQuestion);
 $("export").addEventListener("click", exportRecords);
 window.addEventListener("pagehide", stopSpeech);
