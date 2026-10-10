@@ -74,11 +74,10 @@ function parseCharacters(data) {
   return unique;
 }
 
-function setBank(data, name) {
+function setBank(data) {
   const unique = parseCharacters(data);
   bankEntries = data.map((item) => item.char.trim());
   $("bank-status").textContent = `字库已就绪 · ${bankEntries.length} 条字卡 · ${unique.length} 个不同汉字`;
-  $("file-status").textContent = `已加载 ${name}。练习范围已重置为全部字，应用于下一轮。`;
   for (const id of ["range-start", "range-end"]) $(id).max = bankEntries.length;
   $("range-start").value = 1;
   $("range-end").value = bankEntries.length;
@@ -396,35 +395,11 @@ $("retry-history").addEventListener("click", () => retryMistakes("history"));
 $("listen").addEventListener("click", speak);
 $("next").addEventListener("click", nextQuestion);
 $("export").addEventListener("click", exportRecords);
-let bankLoadVersion = 0;
-$("file-input").addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  const version = ++bankLoadVersion;
-  try {
-    const text = await file.text();
-    if (version !== bankLoadVersion) return;
-    setBank(JSON.parse(text), file.name);
-  } catch (error) {
-    $("file-status").textContent = `加载失败：${error instanceof SyntaxError ? "JSON 格式不正确，请使用双引号。" : error.message} 原有字库未改变。`;
-  }
-  event.target.value = "";
-});
 window.addEventListener("pagehide", stopSpeech);
 loadAttempts();
 renderStats();
-(async () => {
-  const version = bankLoadVersion;
-  try {
-    const response = await fetch("./characters.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    if (version === bankLoadVersion) setBank(data, "characters.json");
-  } catch (error) {
-    if (version !== bankLoadVersion) return;
-    $("bank-status").textContent = location.protocol === "file:"
-      ? "请在下方“家长小角落”选择 characters.json，即可开始。"
-      : `字库读取失败：${error.message} 请检查 characters.json 或手动选择字库。`;
-    $("parent-panel").open = true;
-  }
-})();
+try {
+  setBank(JSON.parse($("default-characters").textContent));
+} catch (error) {
+  $("bank-status").textContent = `内置字库加载失败：${error.message}，请检查页面文件是否完整。`;
+}
