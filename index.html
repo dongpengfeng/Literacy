@@ -12,6 +12,20 @@
   <header class="topbar"><a class="brand" href="./index.html"><span class="brand-icon">字</span> 小小识字岛</a><span class="tag">每天认识一点点</span></header>
   <main>
     <div id="storage-warning" class="notice" role="alert" hidden></div>
+    <section class="range-panel" aria-labelledby="range-title">
+      <h2 id="range-title">今天练哪些字？</h2>
+      <fieldset id="range-controls" disabled>
+        <legend class="hint">按 JSON 条目顺序选择，包含起止位置，从第 1 个开始计数。</legend>
+        <div class="range-inputs">
+          <label for="range-start">从第 <input id="range-start" type="number" min="1" step="1" value="1" aria-describedby="range-status"> 个</label>
+          <span aria-hidden="true">—</span>
+          <label for="range-end">到第 <input id="range-end" type="number" min="1" step="1" value="1" aria-describedby="range-status"> 个</label>
+          <button id="range-all" class="secondary" type="button">全部字</button>
+        </div>
+      </fieldset>
+      <p id="range-status" class="hint" role="status" aria-live="polite">加载字库后即可选择范围。</p>
+      <p id="range-preview" class="range-preview"></p>
+    </section>
     <section id="welcome" class="panel welcome">
       <div class="eyebrow">小耳朵，准备好了吗？</div>
       <h1>听一听，<span>认一认。</span></h1>

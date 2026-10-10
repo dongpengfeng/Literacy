@@ -3,6 +3,9 @@
 const STORAGE_KEY = "literacy.attempts.v1";
 const $ = (id) => document.getElementById(id);
 let characters = [];
+let bankEntries = [];
+let selectedRange = null;
+let roundRange = null;
 let attempts = [];
 let questions = [];
 let questionIndex = 0;
@@ -72,11 +75,54 @@ function parseCharacters(data) {
 }
 
 function setBank(data, name) {
-  characters = parseCharacters(data);
-  $("bank-status").textContent = `字库已就绪 · ${characters.length} 个汉字`;
-  $("file-status").textContent = `已加载 ${name}，共 ${characters.length} 个不同汉字，每轮 ${Math.min(10, characters.length)} 题。`;
-  $("start").disabled = false;
-  $("round-size").textContent = `✦ 每轮 ${Math.min(10, characters.length)} 题`;
+  const unique = parseCharacters(data);
+  bankEntries = data.map((item) => item.char.trim());
+  $("bank-status").textContent = `字库已就绪 · ${bankEntries.length} 条字卡 · ${unique.length} 个不同汉字`;
+  $("file-status").textContent = `已加载 ${name}。练习范围已重置为全部字，应用于下一轮。`;
+  for (const id of ["range-start", "range-end"]) $(id).max = bankEntries.length;
+  $("range-start").value = 1;
+  $("range-end").value = bankEntries.length;
+  $("range-controls").disabled = inProgress;
+  updateRange();
+}
+
+function selectRange(entries, from, to) {
+  const start = Number(from), end = Number(to);
+  if (!String(from).trim() || !String(to).trim() || !Number.isInteger(start) || !Number.isInteger(end)) {
+    throw new Error("请输入起止位置，两个位置都需要是整数。");
+  }
+  if (start < 1 || end > entries.length || start > end) {
+    throw new Error(`请选择第 1～${entries.length} 个之间的范围，起点不能大于终点。`);
+  }
+  // Slice before deduplicating so positions match the original JSON exactly.
+  const chars = [...new Set(entries.slice(start - 1, end))];
+  if (chars.length < 4) throw new Error("所选范围至少需要 4 个不同汉字，才能生成四选一题目。");
+  return { start, end, chars };
+}
+
+function updateRange() {
+  try {
+    const range = selectRange(bankEntries, $("range-start").value, $("range-end").value);
+    characters = range.chars;
+    selectedRange = { start: range.start, end: range.end };
+    $("range-status").textContent = `已选第 ${range.start}～${range.end} 个 · ${range.end - range.start + 1} 条字卡 · ${characters.length} 个不同汉字 · 每轮 ${Math.min(10, characters.length)} 题${inProgress ? "（下一轮生效）" : ""}`;
+    $("range-status").className = "hint";
+    $("range-preview").textContent = `范围预览：${characters.slice(0, 20).join("　")}${characters.length > 20 ? " …" : ""}`;
+    $("round-size").textContent = `✦ 每轮 ${Math.min(10, characters.length)} 题`;
+    $("start").disabled = false;
+    $("again").disabled = false;
+    return true;
+  } catch (error) {
+    characters = [];
+    selectedRange = null;
+    $("range-status").textContent = error.message;
+    $("range-status").className = "hint range-error";
+    $("range-preview").textContent = "";
+    $("round-size").textContent = "✦ 请先选择有效范围";
+    $("start").disabled = true;
+    $("again").disabled = true;
+    return false;
+  }
 }
 
 function shuffle(values) {
@@ -111,7 +157,7 @@ function retryMistakes(scope) {
     : pendingMistakes();
   if (!targets.length) return;
   // Prior options allow review even after the original characters leave the bank.
-  const pool = [...new Set([...characters, ...attempts.flatMap((a) => a.options)])];
+  const pool = [...new Set([...bankEntries, ...attempts.flatMap((a) => a.options)])];
   startRound("review", shuffle(targets).slice(0, 10), pool, scope === "round" ? roundId : null);
 }
 
@@ -144,12 +190,18 @@ function speak() {
 }
 
 function startRound(mode = "normal", targets, bank = characters, source = null) {
+  if (mode === "normal") {
+    if (!updateRange()) return;
+    bank = characters;
+  }
   if (inProgress || bank.length < 4) return;
   questions = buildQuestions(bank, targets);
   if (!questions.length) return;
   roundMode = mode;
   sourceRoundId = source;
   inProgress = true;
+  roundRange = mode === "normal" ? { ...selectedRange } : null;
+  $("range-controls").disabled = true;
   $("progress").max = questions.length;
   roundId = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   questionIndex = 0;
@@ -193,7 +245,7 @@ function choose(selectedChar) {
   const q = questions[questionIndex];
   const correct = selectedChar === q.targetChar;
   attempts.push({
-    mode: roundMode, totalQuestions: questions.length, sourceRoundId,
+    mode: roundMode, totalQuestions: questions.length, sourceRoundId, range: roundRange,
     roundId, questionNumber: questionIndex + 1, options: [...q.options],
     targetChar: q.targetChar, selectedChar, correct,
     answeredAt: new Date().toISOString(), responseTimeMs: Math.round(performance.now() - shownAt)
@@ -223,6 +275,7 @@ function nextQuestion() {
   if (questionIndex < questions.length - 1) { questionIndex++; showQuestion(); return; }
   stopSpeech();
   inProgress = false;
+  $("range-controls").disabled = !bankEntries.length;
   $("quiz").hidden = true;
   $("result").hidden = false;
   const records = roundAttempts();
@@ -331,6 +384,12 @@ function exportRecords() {
 }
 
 $("start").addEventListener("click", () => startRound());
+for (const id of ["range-start", "range-end"]) $(id).addEventListener("input", updateRange);
+$("range-all").addEventListener("click", () => {
+  $("range-start").value = 1;
+  $("range-end").value = bankEntries.length;
+  updateRange();
+});
 $("again").addEventListener("click", () => startRound());
 $("retry-round").addEventListener("click", () => retryMistakes("round"));
 $("retry-history").addEventListener("click", () => retryMistakes("history"));
