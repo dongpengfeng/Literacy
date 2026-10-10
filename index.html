@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5ed">
+  <title>小小识字岛 · 听一听，认一认</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="./index.html"><span class="brand-icon">字</span> 小小识字岛</a><span class="tag">每天认识一点点</span></header>
+  <main>
+    <div id="storage-warning" class="notice" role="alert" hidden></div>
+    <section id="welcome" class="panel welcome">
+      <div class="eyebrow">小耳朵，准备好了吗？</div>
+      <h1>听一听，<span>认一认。</span></h1>
+      <p class="subtitle">听到一个字，找到它。<br>一起完成今天的认字小挑战！</p>
+      <div class="sample-tiles" aria-hidden="true"><span>山</span><span>月</span><span>水</span></div>
+      <div class="pills"><span>♫ 听音选字</span><span id="round-size">✦ 每轮最多 10 题</span><span>✓ 自动记录</span></div>
+      <p id="bank-status" class="muted" role="status">正在读取字库…</p>
+      <button id="start" class="primary" disabled>开始认字 <span aria-hidden="true">→</span></button>
+      <p class="hint">记得打开声音哦。小朋友可以请大人一起帮忙。</p>
+    </section>
+
+    <section id="quiz" class="panel quiz" hidden aria-labelledby="quiz-title">
+      <div class="quiz-top"><span id="question-count"></span><span id="score-count"></span></div>
+      <progress id="progress" max="10" value="0" aria-label="已完成题数"></progress>
+      <h1 id="quiz-title" tabindex="-1">哪个字在说话？</h1>
+      <p class="muted">点小喇叭听一听，再选出你听到的字。</p>
+      <button id="listen" class="listen" aria-label="播放本题汉字读音"><span aria-hidden="true">♫</span> 听一听</button>
+      <p id="speech-status" class="hint" role="status"></p>
+      <details class="adult"><summary>家长辅助读题</summary><p>请读出这个字，让小朋友来选：<strong id="adult-char"></strong></p></details>
+      <div id="options" class="options" aria-label="汉字选项"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+      <button id="next" class="primary" hidden>下一题 →</button>
+    </section>
+
+    <section id="result" class="panel result" hidden aria-labelledby="result-title">
+      <div class="eyebrow">今天也有新收获</div>
+      <h1 id="result-title" tabindex="-1">挑战完成！</h1>
+      <div id="accuracy-ring" class="accuracy-ring" role="img" aria-label="本轮正确率"><div><strong id="accuracy-value"></strong><span>本轮正确率</span></div></div>
+      <p id="chart-legend" class="chart-legend"></p><p id="result-score" class="result-score"></p>
+      <p id="result-message" class="muted"></p><div id="round-mistakes" class="round-mistakes"></div>
+      <h2>这一轮的小足迹</h2><div id="answer-grid" class="answer-grid"></div>
+      <div class="result-actions"><button id="retry-round" class="primary" hidden>再练本轮错题</button><button id="again" class="secondary">开始新一轮 →</button></div>
+    </section>
+
+    <details id="parent-panel" class="parent-panel">
+      <summary>家长小角落 <span>字库 · 答题记录 · 错题统计</span></summary>
+      <div class="parent-content">
+        <h2>认字字库</h2>
+        <p>默认读取同目录的 <code>characters.json</code>。替换后刷新页面即可；也可以在这里选择文件，应用到下一轮。</p>
+        <label class="file-label">选择 JSON 字库<input id="file-input" type="file" accept=".json,application/json"></label>
+        <p id="file-status" class="hint" role="status"></p>
+        <p class="hint">格式：<code>[{"char":"一"},{"char":"二"},…]</code>，至少需要 4 个不同汉字。</p>
+        <h2>学习足迹</h2><p class="hint">仅记录本浏览器的作答；首次选择即记分，未作答不计入统计。中途离开，已答的题也会保留。</p>
+        <div id="stats" class="stats"></div>
+        <h3>错题巩固</h3><p id="pending-status" class="hint" role="status"></p>
+        <button id="retry-history" class="secondary" disabled>练习待巩固错题</button>
+        <p class="hint">重答会新增记录，保留第一次的错误。后续答对的字会移出待巩固列表，历史错题统计仍保留。</p>
+        <h3>错题分布</h3><p class="hint">显示答错次数最多的 8 个字，条形长度表示各字的历史错误率（含重答）。</p><div id="mistake-chart" class="mistake-chart"></div>
+        <h3>需要再认一认的字</h3><p class="hint">按题目正确答案对应的汉字统计；只列出曾经答错的字。</p>
+        <div class="table-wrap"><table><thead><tr><th>汉字</th><th>作答次数</th><th>答错次数</th><th>错误率</th><th>最近错选</th></tr></thead><tbody id="mistakes"></tbody></table></div>
+        <h3>最近 20 次作答</h3>
+        <div class="table-wrap"><table><thead><tr><th>时间</th><th>题号</th><th>正确答案</th><th>选择</th><th>结果</th></tr></thead><tbody id="history"></tbody></table></div>
+        <button id="export" class="secondary">导出全部答题记录（JSON）</button>
+        <p class="hint">记录保存在本浏览器的本地存储中，清理浏览器数据会丢失，请定期导出备份。导出包含每次的选项、答案、正误、时间和作答用时。</p>
+      </div>
+    </details>
+    <footer>慢慢来，每认识一个字，都是进步。</footer>
+  </main>
+</body>
+</html>
