@@ -1,36 +1,6 @@
-# 小小识字岛
+# 小小识字岛(https://github.com/dongpengfeng/literacy)
 
-Vue 3 + Vite 的幼儿认字网页，内置 1300 条字卡（1277 个不同汉字）以及普通话 MP3。无需上传字库。支持范围选择、每轮最多 10 题、错题重答、结果图表、历史统计及 JSON 导出。
-
-## 本地开发
-
-需要 Node.js 20.10+（推荐 Node.js 22）。
-
-```sh
-npm install
-npm run dev
-```
-
-打开终端显示的地址。Vue/Vite 源码需要开发服务器，不能再直接双击根目录的 index.html 运行。
-
-```sh
-npm test
-npm run build
-npm run preview
-```
-
-构建结果在 `dist/`，可部署到任意静态网站服务器。音频和字库会自动打包，不需要单独上传 JSON。
-
-## GitHub Pages
-
-仓库已提供 `.github/workflows/deploy.yml`：推送 main 后自动安装依赖、测试、构建并部署 dist。
-
-1. 将源码及 package-lock.json 提交到仓库，包括 src、tests、配置文件、characters.json、audio-data.js、styles.css 和工作流。
-2. 在仓库 Settings → Pages → Source 选择 **GitHub Actions**（替代之前的 Deploy from a branch）。
-3. 推送 main，或在 Actions 中手动运行 Deploy GitHub Pages。
-4. 成功后仍访问 https://dongpengfeng.github.io/Literacy/ 。
-
-Vite 使用相对资源路径，兼容 /Literacy/ 子目录。如果不使用 Actions，也可以把 `dist/` 内的全部文件部署到 Pages 发布分支，不能直接发布 Vue 源码。
+幼儿认字网页，内置 1300 条字卡（1277 个不同汉字）以及普通话 MP3。无需上传字库。支持范围选择、每轮最多 10 题、错题重答、结果图表、历史统计及 JSON 导出。
 
 ## 范围与均衡出题
 
@@ -55,13 +25,3 @@ Vite 使用相对资源路径，兼容 /Literacy/ 子目录。如果不使用 Ac
 ## 语音与字库
 
 characters.json 是唯一字库源文件，包含 char、words、sentence，修改后重新构建即可。当前题目只使用 char。audio-data.js 内置 1277 个汉字的 MP3，原生 audio 控件隐藏；点击开始、下一题或听一听直接播放，保留备用系统朗读。手机自动播放限制仍由浏览器决定，可能需要再次点击听一听。多音字使用预生成引擎的默认单字读音。
-
-## 代码结构
-
-- src/App.vue：页面外壳和步骤导航。
-- src/router.js、src/views/：首页、答题、本次结果和错题数据路由及视图。
-- src/usePractice.js：共享答题状态、记录及页面流转。
-- src/quiz.js：范围、均衡抽题、原题复习、错题汇总。
-- src/storage.js：旧记录兼容、合并和持久化。
-- src/useAudio.js：MP3 播放与系统朗读兜底。
-- tests/：均衡覆盖、错题选项保留、范围边界、范围持久化及历史数据回归测试。
