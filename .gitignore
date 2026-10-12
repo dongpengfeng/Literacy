@@ -1,0 +1,6 @@
+characters-extraction-notes.md
+characters-source.json
+
+scripts/
+node_modules/
+dist/
