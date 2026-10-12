@@ -23,7 +23,7 @@ const { entries, from, to, expanded, page, selection, start } = inject("practice
       <div class="sample-tiles" aria-hidden="true"><span>山</span><span>月</span><span>水</span></div>
       <div class="pills"><span>♫ 听音选字</span><span>✦ 均衡练习</span><span>✓ 自动记录</span></div>
       <p class="muted">优先练习出题次数少的字，每一轮都有新收获。</p>
-      <button class="primary" :disabled="!!selection.error" @click="start">开始认字 →</button><p class="hint">记得打开声音哦。小朋友可以请大人一起帮忙。</p>
+      <button class="primary" :disabled="!!selection.error" @click="start">开始答题 →</button><p class="hint">记得打开声音哦。小朋友可以请大人一起帮忙。</p>
     </section>
 
 </template>
