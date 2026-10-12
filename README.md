@@ -1,4 +1,4 @@
-# 小小识字岛(https://github.com/dongpengfeng/literacy)
+# 小小识字岛(https://dongpengfeng.github.io/literacy/)
 
 幼儿认字网页，内置 1300 条字卡（1277 个不同汉字）以及普通话 MP3。无需上传字库。支持范围选择、每轮最多 10 题、错题重答、结果图表、历史统计及 JSON 导出。
 
